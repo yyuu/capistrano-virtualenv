@@ -47,7 +47,7 @@ Following options are available to manage your virtualenv.
  * `:virtualenv_script_url` - the download URL of `virtualenv.py`.
  * `:virtualenv_shared_path` - virtualenv path under `:shared_path`.
  * `:virtualenv_shared_python` - python path under `:virtualenv_shared_path`
- * `:virtualenv_use_system` - controls whether virtualenv should be use system packages or not.
+ * `:virtualenv_use_system` - controls whether virtualenv should be use system packages or not. false by default.
            
 ## Contributing
 

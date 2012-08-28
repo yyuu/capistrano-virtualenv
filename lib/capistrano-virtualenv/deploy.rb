@@ -7,7 +7,7 @@ module Capistrano
     def self.extended(configuration)
       configuration.load {
         namespace(:virtualenv) {
-          _cset(:virtualenv_use_system, true) # controls whether virtualenv should be use system packages or not.
+          _cset(:virtualenv_use_system, false) # controls whether virtualenv should be use system packages or not.
 
           _cset(:virtualenv_script_url, 'https://raw.github.com/pypa/virtualenv/master/virtualenv.py')
           _cset(:virtualenv_script_file) {
