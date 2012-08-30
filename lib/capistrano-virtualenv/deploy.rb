@@ -179,7 +179,7 @@ module Capistrano
               top.put(virtualenv_requirements.join("\n"), tempfile.path)
               run("diff -u #{virtualenv_requirements_file} #{tempfile.path} || mv -f #{tempfile.path} #{virtualenv_requirements_file}; rm -f #{tempfile.path}")
             end
-            run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
+            run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
           }
 
           task(:create_release, :except => { :no_release => true }) {
