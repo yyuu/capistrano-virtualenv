@@ -28,6 +28,7 @@ module Capistrano
           }
           _cset(:virtualenv_easy_install_options, %w(--quiet))
           _cset(:virtualenv_pip_options, %w(--quiet))
+          _cset(:virtualenv_pip_install_options, [])
           _cset(:virtualenv_pip_package, 'pip')
           _cset(:virtualenv_requirements, []) # primary package list
           _cset(:virtualenv_requirements_file) { # secondary package list
@@ -47,8 +48,24 @@ module Capistrano
           _cset(:virtualenv_shared_easy_install) {
             File.join(virtualenv_shared_path, 'bin', 'easy_install')
           }
+          _cset(:virtualenv_shared_easy_install_cmd) {
+            # execute from :virtualenv_shared_python
+            # since `virtualenv --relocatable` will not set shebang line with absolute path.
+            [
+              virtualenv_shared_python,
+              virtualenv_shared_easy_install,
+              virtualenv_easy_install_options,
+            ].flatten.join(' ')
+          }
           _cset(:virtualenv_shared_pip) {
             File.join(virtualenv_shared_path, 'bin', 'pip')
+          }
+          _cset(:virtualenv_shared_pip_cmd) {
+            [
+              virtualenv_shared_python,
+              virtualenv_shared_pip,
+              virtualenv_pip_options,
+            ].flatten.join(' ')
           }
 
           ## release virtualenv
@@ -64,8 +81,22 @@ module Capistrano
           _cset(:virtualenv_release_easy_install) {
             File.join(virtualenv_release_path, 'bin', 'easy_install')
           }
+          _cset(:virtualenv_release_easy_install_cmd) {
+            [
+              virtualenv_release_python,
+              virtualenv_release_easy_install,
+              virtualenv_easy_install_options,
+            ].flatten.join(' ')
+          }
           _cset(:virtualenv_release_pip) {
             File.join(virtualenv_release_path, 'bin', 'pip')
+          }
+          _cset(:virtualenv_release_pip_cmd) {
+            [
+              virtualenv_release_python,
+              virtualenv_release_pip,
+              virtualenv_pip_options,
+            ].flatten.join(' ')
           }
 
           ## current virtualenv
@@ -80,8 +111,22 @@ module Capistrano
           _cset(:virtualenv_current_easy_install) {
             File.join(virtualenv_current_path, 'bin', 'easy_install')
           }
+          _cset(:virtualenv_current_easy_install_cmd) {
+            [
+              virtualenv_current_python,
+              virtualenv_current_easy_install,
+              virtualenv_easy_install_options,
+            ].flatten.join(' ')
+          }
           _cset(:virtualenv_current_pip) {
             File.join(virtualenv_current_path, 'bin', 'pip')
+          }
+          _cset(:virtualenv_current_pip_cmd) {
+            [
+              virtualenv_current_python,
+              virtualenv_current_pip,
+              virtualenv_pip_options,
+            ].flatten.join(' ')
           }
 
           desc("Setup virtualenv.")
@@ -110,8 +155,8 @@ module Capistrano
             cmds = [ ]
             cmds << "mkdir -p #{dirs.join(' ')}"
             cmds << "( test -d #{virtualenv_shared_path} || #{virtualenv_cmd} #{virtualenv_shared_path} )"
-            cmds << "( test -x #{virtualenv_shared_pip} || #{virtualenv_shared_easy_install} #{virtualenv_easy_install_options.join(' ')} #{virtualenv_pip_package} )"
-            cmds << "#{virtualenv_shared_python} --version && #{virtualenv_shared_pip} --version"
+            cmds << "( test -x #{virtualenv_shared_pip} || #{virtualenv_shared_easy_install_cmd} #{virtualenv_pip_package} )"
+            cmds << "#{virtualenv_shared_python} --version && #{virtualenv_shared_pip_cmd} --version"
             run(cmds.join(' && '))
           }
 
@@ -134,20 +179,24 @@ module Capistrano
               top.put(virtualenv_requirements.join("\n"), tempfile.path)
               run("diff -u #{virtualenv_requirements_file} #{tempfile.path} || mv -f #{tempfile.path} #{virtualenv_requirements_file}; rm -f #{tempfile.path}")
             end
-            run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip} #{virtualenv_pip_options.join(' ')} install -r #{virtualenv_requirements_file}")
+            run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
           }
 
           task(:create_release, :except => { :no_release => true }) {
             dirs = [ File.dirname(virtualenv_release_path) ].uniq()
             cmds = [ ]
             cmds << "mkdir -p #{dirs.join(' ')}"
-            if fetch(:virtualenv_use_relocatable, false) # "--relocatable" does not work expectedly on virtualenv 1.7.2
+            # TODO: turn :virtualenv_use_relocatable true if it will be an official features.
+            # `virtualenv --relocatable` does not work expectedly as of virtualenv 1.7.2.
+            if fetch(:virtualenv_use_relocatable, false)
               cmds << "#{virtualenv_cmd} --relocatable #{virtualenv_shared_path}"
               cmds << "cp -RPp #{virtualenv_shared_path} #{virtualenv_release_path}"
             else
               cmds << "( test -d #{virtualenv_release_path} || #{virtualenv_cmd} #{virtualenv_release_path} )"
-              cmds << "( test -x #{virtualenv_release_pip} || #{virtualenv_release_easy_install} #{virtualenv_easy_install_options.join(' ')} #{virtualenv_pip_package} )"
-              cmds << "#{virtualenv_release_python} --version && #{virtualenv_release_pip} --version"
+              cmds << "( test -x #{virtualenv_release_pip} || #{virtualenv_release_easy_install_cmd} #{virtualenv_pip_package} )"
+              cmds << "#{virtualenv_release_python} --version && #{virtualenv_release_pip_cmd} --version"
+              cmds << "rsync -lrpt -u #{virtualenv_shared_path}/bin/ #{virtualenv_release_path}/bin/" # copy binaries and scripts from shared virtualenv
+              cmds << "sed -i -e 's|^#!#{virtualenv_shared_path}/bin/python.*$|#!#{virtualenv_release_path}/bin/python|' #{virtualenv_release_path}/bin/*"
               cmds << "rsync -lrpt #{virtualenv_shared_path}/lib/ #{virtualenv_release_path}/lib/" # copy libraries from shared virtualenv
             end
             run(cmds.join(' && '))

@@ -40,6 +40,7 @@ Following options are available to manage your virtualenv.
  * `:virtualenv_easy_install_options` - options for `easy_install`. by defaul "--quiet".
  * `:virtualenv_install_packages` - apt packages dependencies for python.
  * `:virtualenv_pip_options` - options for `pip`. by default "--quiet".
+ * `:virtualenv_pip_install_options` - options for `pip install`.
  * `:virtualenv_release_path` - virtualenv path under `:release_path`.
  * `:virtualenv_release_python` - python path under `:virtualenv_release_path`.
  * `:virtualenv_requirements` - the list of `pip` packages should be installed to `virtualenv`.
