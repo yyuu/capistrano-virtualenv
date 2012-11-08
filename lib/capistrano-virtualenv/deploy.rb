@@ -187,7 +187,7 @@ module Capistrano
 
             execute = virtualenv_build_requirements.map { |package, options|
               build_options = ( options || [] )
-              execute << "#{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} #{build_options.join(' ')} #{package.dump}"
+              "#{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} #{build_options.join(' ')} #{package.dump}"
             }
             run(execute.join(' && ')) unless execute.empty?
           }
