@@ -1,5 +1,4 @@
 
-require 'tempfile'
 require 'uri'
 
 module Capistrano
@@ -176,9 +175,13 @@ module Capistrano
 
           task(:update_shared, :except => { :no_release => true }) {
             unless virtualenv_requirements.empty?
-              tempfile = Tempfile.new(File.basename($0))
-              top.put(virtualenv_requirements.join("\n"), tempfile.path)
-              run("diff -u #{virtualenv_requirements_file} #{tempfile.path} || mv -f #{tempfile.path} #{virtualenv_requirements_file}; rm -f #{tempfile.path}")
+              tempfile = "/tmp/requirements.txt.#{$$}"
+              begin
+                top.put(virtualenv_requirements.join("\n"), tempfile)
+                run("diff -u #{virtualenv_requirements_file} #{tempfile} || mv -f #{tempfile} #{virtualenv_requirements_file}")
+              ensure
+                run("rm -f #{tempfile}")
+              end
             end
             run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
 
