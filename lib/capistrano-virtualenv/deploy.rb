@@ -34,6 +34,7 @@ module Capistrano
           _cset(:virtualenv_requirements_file) { # secondary package list
             File.join(release_path, 'requirements.txt')
           }
+          _cset(:virtualenv_build_requirements, {})
           _cset(:virtualenv_install_packages, []) # apt packages
 
           ## shared virtualenv:
@@ -180,6 +181,12 @@ module Capistrano
               run("diff -u #{virtualenv_requirements_file} #{tempfile.path} || mv -f #{tempfile.path} #{virtualenv_requirements_file}; rm -f #{tempfile.path}")
             end
             run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
+
+            execute = virtualenv_build_requirements.map { |package, options|
+              build_options = ( options || [] )
+              execute << "#{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} #{build_options.join(' ')} #{package.dump}"
+            }
+            run(execute.join(' && ')) unless execute.empty?
           }
 
           task(:create_release, :except => { :no_release => true }) {
