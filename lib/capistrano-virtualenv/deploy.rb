@@ -175,7 +175,7 @@ module Capistrano
 
           task(:update_shared, :except => { :no_release => true }) {
             unless virtualenv_requirements.empty?
-              tempfile = capture("mktemp").chomp
+              tempfile = capture("t=$(mktemp /tmp/capistrano-virtualenv.XXXXXXXXXX;rm -f $t;echo $t").chomp
               begin
                 top.put(virtualenv_requirements.join("\n"), tempfile)
                 run("diff -u #{virtualenv_requirements_file} #{tempfile} || mv -f #{tempfile} #{virtualenv_requirements_file}")
