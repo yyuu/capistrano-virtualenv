@@ -1,4 +1,5 @@
 require "capistrano-virtualenv/version"
+require "capistrano/configuration/actions/file_transfer_ext"
 require "uri"
 
 module Capistrano
@@ -175,13 +176,7 @@ module Capistrano
 
           task(:update_shared, :except => { :no_release => true }) {
             unless virtualenv_requirements.empty?
-              tempfile = capture("t=$(mktemp /tmp/capistrano-virtualenv.XXXXXXXXXX;rm -f $t;echo $t").chomp
-              begin
-                top.put(virtualenv_requirements.join("\n"), tempfile)
-                run("diff -u #{virtualenv_requirements_file} #{tempfile} || mv -f #{tempfile} #{virtualenv_requirements_file}")
-              ensure
-                run("rm -f #{tempfile}")
-              end
+              top.safe_put(virtualenv_requirements.join("\n"), virtualenv_requirements_file, :place => :if_modified)
             end
             run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
 

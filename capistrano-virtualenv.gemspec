@@ -16,4 +16,5 @@ Gem::Specification.new do |gem|
   gem.version       = Capistrano::Virtualenv::VERSION
 
   gem.add_dependency("capistrano")
+  gem.add_dependency("capistrano-file-transfer-ext")
 end
