@@ -130,12 +130,10 @@ module Capistrano
             ].flatten.join(" ")
           }
 
-          _cset(:virtualenv_install_packages, []) # apt packages
-          _cset(:virtualenv_setup_dependencies) { not(virtualenv_install_packages.empty?) }
           desc("Setup virtualenv.")
           task(:setup, :except => { :no_release => true }) {
             transaction {
-              dependencies if virtualenv_setup_dependencies
+              dependencies if fetch(:virtualenv_setup_dependencies, true)
               install
               create_shared
             }
@@ -148,8 +146,40 @@ module Capistrano
             run("test -f #{virtualenv_script_file.dump} || wget --no-verbose -O #{virtualenv_script_file.dump} #{virtualenv_script_url.dump}")
           }
 
+          _cset(:virtualenv_platform) {
+            capture((<<-EOS).gsub(/\s+/, ' ')).strip
+              if test -f /etc/debian_version; then
+                if test -f /etc/lsb-release && grep -i -q DISTRIB_ID=Ubuntu /etc/lsb-release; then
+                  echo ubuntu;
+                else
+                  echo debian;
+                fi;
+              elif test -f /etc/redhat-release; then
+                echo redhat;
+              else
+                echo unknown;
+              fi;
+            EOS
+          }
+          _cset(:virtualenv_install_packages) {
+            case virtualenv_platform
+            when /(debian|ubuntu)/i
+              %w(python rsync)
+            when /redhat/i
+              %w(python rsync)
+            else
+              []
+            end
+          }
           task(:dependencies, :except => { :no_release => true }) {
-            run("#{sudo} apt-get install #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
+            unless virtualenv_install_packages.empty?
+              case virtualenv_platform
+              when /(debian|ubuntu)/i
+                run("#{sudo} apt-get install -q -y #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
+              when /redhat/i
+                run("#{sudo} yum install -q -y #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
+              end
+            end
           }
 
           desc("Uninstall virtualenv.")
