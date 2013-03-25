@@ -1,5 +1,5 @@
 module Capistrano
   module Virtualenv
-    VERSION = "0.0.5git"
+    VERSION = "0.1.0"
   end
 end
