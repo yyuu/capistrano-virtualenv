@@ -1,5 +1,4 @@
 require "capistrano-virtualenv/version"
-require "capistrano/configuration/actions/file_transfer_ext"
 require "uri"
 
 module Capistrano
@@ -8,161 +7,181 @@ module Capistrano
       configuration.load {
         namespace(:virtualenv) {
           _cset(:virtualenv_use_system, false) # controls whether virtualenv should be use system packages or not.
-
-          _cset(:virtualenv_script_url, 'https://raw.github.com/pypa/virtualenv/master/virtualenv.py')
-          _cset(:virtualenv_script_file) {
-            File.join(shared_path, 'virtualenv', File.basename(URI.parse(virtualenv_script_url).path))
+          _cset(:virtualenv_script_url, "https://raw.github.com/pypa/virtualenv/master/virtualenv.py")
+          _cset(:virtualenv_script_file) { File.join(shared_path, "virtualenv", File.basename(URI.parse(virtualenv_script_url).path)) }
+          _cset(:virtualenv_bootstrap_python, "python") # the python executable which will be used to craete virtualenv
+          _cset(:virtualenv_cmd) { command }
+          _cset(:virtualenv_default_options) {
+            options = %w(--distribute --quiet)
+            options << "--system-site-packages" if virtualenv_use_system
+            options
           }
-          _cset(:virtualenv_bootstrap_python, 'python') # the python executable which will be used to craete virtualenv
-          _cset(:virtualenv_cmd) {
-            [
-              virtualenv_bootstrap_python,
-              virtualenv_script_file,
-              virtualenv_options,
-            ].flatten.join(' ')
+          _cset(:virtualenv_options) { virtualenv_default_options + fetch(:virtualenv_extra_options, []) }
+          _cset(:virtualenv_easy_install_options) { # TODO: remove this
+            logger.info(":virtualenv_easy_install_options has been deprecated.")
+            %w(--quiet)
           }
-          _cset(:virtualenv_options) {
-            os = %w(--quiet)
-            os << "--system-site-packages" if virtualenv_use_system
-            os
-          }
-          _cset(:virtualenv_easy_install_options, %w(--quiet))
-          _cset(:virtualenv_pip_options, %w(--quiet))
+          _cset(:virtualenv_pip_default_options, %w(--quiet))
+          _cset(:virtualenv_pip_options) { virtualenv_pip_default_options + fetch(:virtualenv_pip_extra_options, []) }
           _cset(:virtualenv_pip_install_options, [])
-          _cset(:virtualenv_pip_package, 'pip')
           _cset(:virtualenv_requirements, []) # primary package list
-          _cset(:virtualenv_requirements_file) { # secondary package list
-            File.join(release_path, 'requirements.txt')
-          }
+          _cset(:virtualenv_requirements_file) { File.join(release_path, "requirements.txt") } # secondary package list
           _cset(:virtualenv_build_requirements, {})
-          _cset(:virtualenv_install_packages, []) # apt packages
 
           ## shared virtualenv:
           ## - created in shared_path
           ## - to be used to share libs between releases
-          _cset(:virtualenv_shared_path) {
-            File.join(shared_path, 'virtualenv', 'shared')
+          _cset(:virtualenv_shared_path) { File.join(shared_path, "virtualenv", "shared") }
+          _cset(:virtualenv_shared_bin_path) { File.join(virtualenv_shared_path, "bin") }
+          _cset(:virtualenv_shared_python) { File.join(virtualenv_shared_bin_path, "python") }
+          _cset(:virtualenv_shared_easy_install) { # TODO: remove this
+            logger.info(":virtualenv_shared_easy_install has been deprecated.")
+            File.join(virtualenv_shared_bin_path, "easy_install")
           }
-          _cset(:virtualenv_shared_python) {
-            File.join(virtualenv_shared_path, 'bin', 'python')
-          }
-          _cset(:virtualenv_shared_easy_install) {
-            File.join(virtualenv_shared_path, 'bin', 'easy_install')
-          }
-          _cset(:virtualenv_shared_easy_install_cmd) {
+          _cset(:virtualenv_shared_easy_install_cmd) { # TODO: remove this
             # execute from :virtualenv_shared_python
             # since `virtualenv --relocatable` will not set shebang line with absolute path.
+            logger.info(":virtualenv_shared_easy_install_cmd has been deprecated.")
             [
-              virtualenv_shared_python,
-              virtualenv_shared_easy_install,
-              virtualenv_easy_install_options,
-            ].flatten.join(' ')
+              virtualenv_shared_python.dump,
+              virtualenv_shared_easy_install.dump,
+              virtualenv_easy_install_options.map { |x| x.dump }.join(" "),
+            ].join(" ")
           }
-          _cset(:virtualenv_shared_pip) {
-            File.join(virtualenv_shared_path, 'bin', 'pip')
+          # execute from :virtualenv_shared_python
+          # since `virtualenv --relocatable` will not set shebang line with absolute path.
+          _cset(:virtualenv_shared_pip) { # TODO: remove this
+            logger.info(":virtualenv_shared_pip has been deprecated.")
+            File.join(virtualenv_shared_bin_path, "pip")
           }
-          _cset(:virtualenv_shared_pip_cmd) {
+          _cset(:virtualenv_shared_pip_cmd) { # TODO: remove this
+            logger.info(":virtualenv_shared_pip_cmd has been deprecated.")
             [
-              virtualenv_shared_python,
-              virtualenv_shared_pip,
-              virtualenv_pip_options,
-            ].flatten.join(' ')
+              virtualenv_shared_python.dump,
+              virtualenv_shared_pip.dump,
+              virtualenv_pip_options.map { |x| x.dump }.join(" "),
+            ].join(" ")
           }
 
           ## release virtualenv
           ## - created in release_path
           ## - common libs are copied from shared virtualenv
           ## - will be used for running application
-          _cset(:virtualenv_release_path) { # the path where runtime virtualenv will be created
-            File.join(release_path, 'vendor', 'virtualenv')
+          _cset(:virtualenv_release_path) { File.join(release_path, "vendor", "virtualenv") } # the path where runtime virtualenv will be created
+          _cset(:virtualenv_release_bin_path) { File.join(virtualenv_release_path, "bin") }
+          _cset(:virtualenv_release_python) { File.join(virtualenv_release_bin_path, "python") } # the python executable within virtualenv
+          _cset(:virtualenv_release_easy_install) { # TODO: remove this
+            logger.info(":virtualenv_release_easy_install has been deprecated.")
+            File.join(virtualenv_release_bin_path, "easy_install")
           }
-          _cset(:virtualenv_release_python) { # the python executable within virtualenv
-            File.join(virtualenv_release_path, 'bin', 'python')
-          }
-          _cset(:virtualenv_release_easy_install) {
-            File.join(virtualenv_release_path, 'bin', 'easy_install')
-          }
-          _cset(:virtualenv_release_easy_install_cmd) {
+          _cset(:virtualenv_release_easy_install_cmd) { # TODO: remove this
+            # execute from :virtualenv_release_python
+            # since `virtualenv --relocatable` will not set shebang line with absolute path.
+            logger.info(":virtualenv_release_easy_install_cmd has been deprecated.")
             [
-              virtualenv_release_python,
-              virtualenv_release_easy_install,
-              virtualenv_easy_install_options,
-            ].flatten.join(' ')
+              virtualenv_release_python.dump,
+              virtualenv_release_easy_install.dump,
+              virtualenv_easy_install_options.map { |x| x.dump }.join(" "),
+            ].join(" ")
           }
-          _cset(:virtualenv_release_pip) {
-            File.join(virtualenv_release_path, 'bin', 'pip')
+          _cset(:virtualenv_release_pip) { # TODO: remove this
+            logger.info(":virtualenv_release_pip has been deprecated.")
+            File.join(virtualenv_release_bin_path, "pip")
           }
-          _cset(:virtualenv_release_pip_cmd) {
+          _cset(:virtualenv_release_pip_cmd) { # TODO: remove this
+            logger.info(":virtualenv_release_pip_cmd has been deprecated.")
             [
-              virtualenv_release_python,
-              virtualenv_release_pip,
-              virtualenv_pip_options,
-            ].flatten.join(' ')
+              virtualenv_release_python.dump,
+              virtualenv_release_pip.dump,
+              virtualenv_pip_options.map { |x| x.dump }.join(" "),
+            ].flatten.join(" ")
           }
 
           ## current virtualenv
           ## - placed in current_path
           ## - virtualenv of currently running application
-          _cset(:virtualenv_current_path) {
-            File.join(current_path, 'vendor', 'virtualenv')
+          _cset(:virtualenv_current_path) { File.join(current_path, "vendor", "virtualenv") }
+          _cset(:virtualenv_current_bin_path) { File.join(virtualenv_current_path, "bin") }
+          _cset(:virtualenv_current_python) { File.join(virtualenv_current_bin_path, "python") }
+          _cset(:virtualenv_current_easy_install) { # TODO: remove this
+            logger.info(":virtualenv_current_easy_install has been deprecated.")
+            File.join(virtualenv_current_bin_path, "easy_install")
           }
-          _cset(:virtualenv_current_python) {
-            File.join(virtualenv_current_path, 'bin', 'python')
-          }
-          _cset(:virtualenv_current_easy_install) {
-            File.join(virtualenv_current_path, 'bin', 'easy_install')
-          }
-          _cset(:virtualenv_current_easy_install_cmd) {
+          _cset(:virtualenv_current_easy_install_cmd) { # TODO: remove this
+            # execute from :virtualenv_current_python
+            # since `virtualenv --relocatable` will not set shebang line with absolute path.
+            logger.info(":virtualenv_current_easy_install_cmd has been deprecated.")
             [
-              virtualenv_current_python,
-              virtualenv_current_easy_install,
-              virtualenv_easy_install_options,
-            ].flatten.join(' ')
+              virtualenv_current_python.dump,
+              virtualenv_current_easy_install.dump,
+              virtualenv_easy_install_options.map { |x| x.dump }.join(" "),
+            ].join(" ")
           }
           _cset(:virtualenv_current_pip) {
-            File.join(virtualenv_current_path, 'bin', 'pip')
+            logger.info(":virtualenv_current_pip has been deprecated.")
+            File.join(virtualenv_current_path, "bin", "pip")
           }
           _cset(:virtualenv_current_pip_cmd) {
+            logger.info(":virtualenv_current_pip_cmd has been deprecated.")
             [
-              virtualenv_current_python,
-              virtualenv_current_pip,
-              virtualenv_pip_options,
-            ].flatten.join(' ')
+              virtualenv_current_python.dump,
+              virtualenv_current_pip.dump,
+              virtualenv_pip_options.map { |x| x.dump }.join(" "),
+            ].flatten.join(" ")
           }
 
+          _cset(:virtualenv_install_packages, []) # apt packages
+          _cset(:virtualenv_setup_dependencies) { not(virtualenv_install_packages.empty?) }
           desc("Setup virtualenv.")
           task(:setup, :except => { :no_release => true }) {
             transaction {
+              dependencies if virtualenv_setup_dependencies
               install
               create_shared
             }
           }
-          after 'deploy:setup', 'virtualenv:setup'
+          after "deploy:setup", "virtualenv:setup"
 
           desc("Install virtualenv.")
           task(:install, :except => { :no_release => true }) {
-            run("#{sudo} apt-get install #{virtualenv_install_packages.join(' ')}") unless virtualenv_install_packages.empty?
-            dirs = [ File.dirname(virtualenv_script_file) ].uniq()
-            run("mkdir -p #{dirs.join(' ')} && ( test -f #{virtualenv_script_file} || wget --no-verbose -O #{virtualenv_script_file} #{virtualenv_script_url} )")
+            run("mkdir -p #{File.dirname(virtualenv_script_file).dump}")
+            run("test -f #{virtualenv_script_file.dump} || wget --no-verbose -O #{virtualenv_script_file.dump} #{virtualenv_script_url.dump}")
+          }
+
+          task(:dependencies, :except => { :no_release => true }) {
+            run("#{sudo} apt-get install #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
           }
 
           desc("Uninstall virtualenv.")
           task(:uninstall, :except => { :no_release => true }) {
-            run("rm -f #{virtualenv_script_file}")
+            run("rm -f #{virtualenv_script_file.dump}")
           }
 
+          def command(options={})
+            [
+              virtualenv_bootstrap_python,
+              virtualenv_script_file.dump,
+              virtualenv_options.map { |x| x.dump }.join(" "),
+            ].join(" ")
+          end
+
+          def create(destination, options={})
+            execute = []
+            execute << "mkdir -p #{File.dirname(destination).dump}"
+            execute << "( test -d #{destination.dump} || #{command(options)} #{destination.dump} )"
+            invoke_command(execute.join(" && "), options)
+          end
+
+          def destroy(destination, options={})
+            invoke_command("rm -rf #{destination.dump}", options)
+          end
+
           task(:create_shared, :except => { :no_release => true }) {
-            dirs = [ File.dirname(virtualenv_shared_path) ].uniq()
-            cmds = [ ]
-            cmds << "mkdir -p #{dirs.join(' ')}"
-            cmds << "( test -d #{virtualenv_shared_path} || #{virtualenv_cmd} #{virtualenv_shared_path} )"
-            cmds << "( test -x #{virtualenv_shared_pip} || #{virtualenv_shared_easy_install_cmd} #{virtualenv_pip_package} )"
-            cmds << "#{virtualenv_shared_python} --version && #{virtualenv_shared_pip_cmd} --version"
-            run(cmds.join(' && '))
+            virtualenv.create(virtualenv_shared_path)
           }
 
           task(:destroy_shared, :except => { :no_release => true }) {
-            run("rm -rf #{virtualenv_shared_path}")
+            virtualenv.destroy(virtualenv_shared_path)
           }
 
           desc("Update virtualenv for project.")
@@ -172,40 +191,50 @@ module Capistrano
               create_release
             }
           }
-          after 'deploy:finalize_update', 'virtualenv:update'
+          after "deploy:finalize_update", "virtualenv:update"
 
           task(:update_shared, :except => { :no_release => true }) {
-            unless virtualenv_requirements.empty?
-              top.safe_put(virtualenv_requirements.join("\n"), virtualenv_requirements_file, :place => :if_modified)
+            top.put(virtualenv_requirements.join("\n"), virtualenv_requirements_file) unless virtualenv_requirements.empty?
+            run("touch #{virtualenv_requirements_file.dump}")
+            pip_options = ( virtualenv_pip_options + virtualenv_pip_install_options ).map { |x| x.dump }.join(" ")
+            virtualenv.exec("pip install #{pip_options} -r #{virtualenv_requirements_file.dump}",
+                            :virtualenv => virtualenv_shared_path)
+            virtualenv_build_requirements.each do |package, options|
+              options ||= []
+              virtualenv.exec("pip install #{pip_options} #{options.map { |x| x.dump }.join(" ")} #{package.dump}",
+                             :virtualenv => virtualenv_shared_path)
             end
-            run("touch #{virtualenv_requirements_file} && #{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} -r #{virtualenv_requirements_file}")
-
-            execute = virtualenv_build_requirements.map { |package, options|
-              build_options = ( options || [] )
-              "#{virtualenv_shared_pip_cmd} install #{virtualenv_pip_install_options.join(' ')} #{build_options.join(' ')} #{package.dump}"
-            }
-            run(execute.join(' && ')) unless execute.empty?
           }
 
-          task(:create_release, :except => { :no_release => true }) {
-            dirs = [ File.dirname(virtualenv_release_path) ].uniq()
-            cmds = [ ]
-            cmds << "mkdir -p #{dirs.join(' ')}"
+          def relocate(source, destination, options={})
+            execute = []
+            execute << "mkdir -p #{File.dirname(destination).dump}"
             # TODO: turn :virtualenv_use_relocatable true if it will be an official features.
             # `virtualenv --relocatable` does not work expectedly as of virtualenv 1.7.2.
             if fetch(:virtualenv_use_relocatable, false)
-              cmds << "#{virtualenv_cmd} --relocatable #{virtualenv_shared_path}"
-              cmds << "cp -RPp #{virtualenv_shared_path} #{virtualenv_release_path}"
+              execute << %{#{command(options)} --relocatable #{source.dump}}
+              execute << %{cp -RPp #{source.dump} #{destination.dump}}
             else
-              cmds << "( test -d #{virtualenv_release_path} || #{virtualenv_cmd} #{virtualenv_release_path} )"
-              cmds << "( test -x #{virtualenv_release_pip} || #{virtualenv_release_easy_install_cmd} #{virtualenv_pip_package} )"
-              cmds << "#{virtualenv_release_python} --version && #{virtualenv_release_pip_cmd} --version"
-              cmds << "rsync -lrpt -u #{virtualenv_shared_path}/bin/ #{virtualenv_release_path}/bin/" # copy binaries and scripts from shared virtualenv
-              cmds << "sed -i -e 's|^#!#{virtualenv_shared_path}/bin/python.*$|#!#{virtualenv_release_path}/bin/python|' #{virtualenv_release_path}/bin/*"
-              cmds << "rsync -lrpt #{virtualenv_shared_path}/lib/ #{virtualenv_release_path}/lib/" # copy libraries from shared virtualenv
+              execute << %{( test -d #{destination.dump} || #{command(options)} #{destination.dump} )}
+              # copy binaries and scripts from shared virtualenv
+              execute << %{rsync -lrpt #{File.join(source, "bin/").dump} #{File.join(destination, "bin/").dump}}
+              execute << %{sed -i -e 's|^#!#{source}/bin/python.*$|#!#{destination}/bin/python|' #{destination}/bin/*}
+              # copy libraries from shared virtualenv
+              execute << %{rsync -lrpt #{File.join(source, "lib/").dump} #{File.join(destination, "lib/").dump}}
             end
-            run(cmds.join(' && '))
+            invoke_command(execute.join(" && "), options)
+          end
+
+          task(:create_release, :except => { :no_release => true }) {
+            virtualenv.relocate(virtualenv_shared_path, virtualenv_release_path)
           }
+
+          def exec(cmdline, options={})
+            options = options.dup
+            virtualenv = ( options.delete(:virtualenv) || virtualenv_shared_path )
+            options[:env] = options.fetch(:env, {}).merge("PATH" => [ File.join(virtualenv, "bin"), "$PATH" ].join(":"))
+            invoke_command(cmdline, options)
+          end
         }
       }
     end

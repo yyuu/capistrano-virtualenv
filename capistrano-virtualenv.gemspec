@@ -16,7 +16,6 @@ Gem::Specification.new do |gem|
   gem.version       = Capistrano::Virtualenv::VERSION
 
   gem.add_dependency("capistrano")
-  gem.add_dependency("capistrano-file-transfer-ext", ">= 0.1.0")
   gem.add_development_dependency("net-scp", "~> 1.0.4")
   gem.add_development_dependency("net-ssh", "~> 2.2.2")
   gem.add_development_dependency("vagrant", "~> 1.0.6")

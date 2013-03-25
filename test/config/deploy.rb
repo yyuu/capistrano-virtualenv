@@ -139,6 +139,11 @@ namespace(:test_default) {
     assert_command("#{virtualenv_current_python} --version")
     assert_command("echo null | #{virtualenv_current_python} -m simplejson.tool")
   }
+
+  task(:test_virtualenv_exec) {
+    virtualenv.exec("python --version", :virtualenv => virtualenv_shared_path)
+    virtualenv.exec("python --version", :virtualenv => virtualenv_current_path)
+  }
 }
 
 # vim:set ft=ruby sw=2 ts=2 :
