@@ -10,6 +10,10 @@ set :user, "vagrant"
 set :password, "vagrant"
 set :ssh_options, {:user_known_hosts_file => "/dev/null"}
 
+## pyenv ##
+require "capistrano-pyenv"
+set(:pyenv_python_version, "2.7.3")
+
 role :web, "192.168.33.10"
 role :app, "192.168.33.10"
 role :db,  "192.168.33.10", :primary => true
