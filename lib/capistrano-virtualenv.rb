@@ -1,4 +1,5 @@
 require "capistrano-virtualenv/version"
+require "capistrano/configuration/resources/platform_resources"
 require "uri"
 
 module Capistrano
@@ -146,40 +147,9 @@ module Capistrano
             run("test -f #{virtualenv_script_file.dump} || wget --no-verbose -O #{virtualenv_script_file.dump} #{virtualenv_script_url.dump}")
           }
 
-          _cset(:virtualenv_platform) {
-            capture((<<-EOS).gsub(/\s+/, ' ')).strip
-              if test -f /etc/debian_version; then
-                if test -f /etc/lsb-release && grep -i -q DISTRIB_ID=Ubuntu /etc/lsb-release; then
-                  echo ubuntu;
-                else
-                  echo debian;
-                fi;
-              elif test -f /etc/redhat-release; then
-                echo redhat;
-              else
-                echo unknown;
-              fi;
-            EOS
-          }
-          _cset(:virtualenv_install_packages) {
-            case virtualenv_platform
-            when /(debian|ubuntu)/i
-              %w(python rsync)
-            when /redhat/i
-              %w(python rsync)
-            else
-              []
-            end
-          }
+          _cset(:virtualenv_install_packages, %w(python rsync))
           task(:dependencies, :except => { :no_release => true }) {
-            unless virtualenv_install_packages.empty?
-              case virtualenv_platform
-              when /(debian|ubuntu)/i
-                run("#{sudo} apt-get install -q -y #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
-              when /redhat/i
-                run("#{sudo} yum install -q -y #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
-              end
-            end
+            platform.packages.install(virtualenv_install_packages)
           }
 
           desc("Uninstall virtualenv.")
