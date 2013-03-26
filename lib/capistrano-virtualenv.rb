@@ -1,4 +1,5 @@
 require "capistrano-virtualenv/version"
+require "capistrano/configuration/resources/platform_resources"
 require "uri"
 
 module Capistrano
@@ -130,12 +131,10 @@ module Capistrano
             ].flatten.join(" ")
           }
 
-          _cset(:virtualenv_install_packages, []) # apt packages
-          _cset(:virtualenv_setup_dependencies) { not(virtualenv_install_packages.empty?) }
           desc("Setup virtualenv.")
           task(:setup, :except => { :no_release => true }) {
             transaction {
-              dependencies if virtualenv_setup_dependencies
+              dependencies if fetch(:virtualenv_setup_dependencies, true)
               install
               create_shared
             }
@@ -148,8 +147,9 @@ module Capistrano
             run("test -f #{virtualenv_script_file.dump} || wget --no-verbose -O #{virtualenv_script_file.dump} #{virtualenv_script_url.dump}")
           }
 
+          _cset(:virtualenv_install_packages, %w(python rsync))
           task(:dependencies, :except => { :no_release => true }) {
-            run("#{sudo} apt-get install #{virtualenv_install_packages.map { |x| x.dump }.join(" ")}")
+            platform.packages.install(virtualenv_install_packages)
           }
 
           desc("Uninstall virtualenv.")
