@@ -8,7 +8,11 @@ set :scm, :none
 set :use_sudo, false
 set :user, "vagrant"
 set :password, "vagrant"
-set :ssh_options, {:user_known_hosts_file => "/dev/null"}
+set :ssh_options, {
+  :auth_methods => %w(publickey password),
+  :keys => File.join(ENV["HOME"], ".vagrant.d", "insecure_private_key"),
+  :user_known_hosts_file => "/dev/null"
+}
 
 ## pyenv ##
 require "capistrano-pyenv"
