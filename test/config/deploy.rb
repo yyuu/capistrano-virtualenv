@@ -17,6 +17,7 @@ set :ssh_options, {
 ## pyenv ##
 require "capistrano-pyenv"
 set(:pyenv_python_version, "2.7.3")
+set(:virtualenv_bootstrap_python) { "#{pyenv_cmd} exec python" }
 
 role :web, "192.168.33.10"
 role :app, "192.168.33.10"
