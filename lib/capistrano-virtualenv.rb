@@ -176,10 +176,12 @@ module Capistrano
             invoke_command("rm -rf #{destination.dump}", options)
           end
 
+          desc("Create shared virtualenv.")
           task(:create_shared, :except => { :no_release => true }) {
             virtualenv.create(virtualenv_shared_path)
           }
 
+          desc("Destroy shared virtualenv.")
           task(:destroy_shared, :except => { :no_release => true }) {
             virtualenv.destroy(virtualenv_shared_path)
           }

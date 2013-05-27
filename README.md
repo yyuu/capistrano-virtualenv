@@ -49,7 +49,21 @@ Following options are available to manage your virtualenv.
  * `:virtualenv_shared_path` - virtualenv path under `:shared_path`.
  * `:virtualenv_shared_python` - python path under `:virtualenv_shared_path`
  * `:virtualenv_use_system` - controls whether virtualenv should be use system packages or not. false by default.
-           
+
+
+## Examples
+
+### Upgrading base Python version
+
+To upgrade base Python version of virtualenv, you must once remove existing shared virtualenv.
+Since the shared virtualenv is not referenced from release virtualenv after the creation,
+you can safely remove the shared virtualenv before and after the deployments.
+
+    $ cap virtualenv:destroy_shared # remove existing shared virtualenv
+    $ cap virtualenv:setup          # create virtualenv with new Python version
+    $ cap deploy
+
+
 ## Contributing
 
 1. Fork it
