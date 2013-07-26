@@ -8,7 +8,7 @@ module Capistrano
       configuration.load {
         namespace(:virtualenv) {
           _cset(:virtualenv_use_system, false) # controls whether virtualenv should be use system packages or not.
-          _cset(:virtualenv_script_url, "https://raw.github.com/pypa/virtualenv/master/virtualenv.py")
+          _cset(:virtualenv_script_url, "https://raw.github.com/pypa/virtualenv/1.9.1/virtualenv.py")
           _cset(:virtualenv_script_file) { File.join(shared_path, "virtualenv", File.basename(URI.parse(virtualenv_script_url).path)) }
           _cset(:virtualenv_bootstrap_python, "python") # the python executable which will be used to craete virtualenv
           _cset(:virtualenv_cmd) { command }
