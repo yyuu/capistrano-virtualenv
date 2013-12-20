@@ -193,7 +193,7 @@ module Capistrano
               create_release
             }
           }
-          after "deploy:finalize_update", "virtualenv:update"
+          after "deploy:update", "virtualenv:update"
 
           task(:update_shared, :except => { :no_release => true }) {
             top.put(virtualenv_requirements.join("\n"), virtualenv_requirements_file) unless virtualenv_requirements.empty?
